@@ -93,7 +93,7 @@
 
 ```bash
 git clone https://github.com/LyutyV/TypeaheadSearch.git
-cd TypeaheadSearch
+cd TypeaheadSearch/frontend
 ```
 
 2. Install dependencies:
