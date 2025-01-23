@@ -8,7 +8,7 @@
             }
         </ul>
     </div>
-    <div itemSize="100" #viewport class="movie-viewport">
+    <div #viewport class="movie-viewport">
         @if (movies) { @for (movie of movies; track $index) {
         <div class="movie-item">
             @if (movie) {

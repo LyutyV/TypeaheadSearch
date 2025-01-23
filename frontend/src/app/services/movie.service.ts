@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { catchError, map, Observable, throwError } from 'rxjs';
 
@@ -7,21 +7,15 @@ import { catchError, map, Observable, throwError } from 'rxjs';
 })
 export class MovieService {
     private apiUrl = 'https://movie-database-alternative.p.rapidapi.com';
-    private rapidApiKey = '1a3d6dc12amshaf7b6d62ef02951p1a121ajsnf87b81dd4ea4';
-    private rapidApiHost = 'movie-database-alternative.p.rapidapi.com';
     private placeholderPoster = 'https://via.assets.so/movie.png?id=2&w=80&h=100';
 
     constructor(private http: HttpClient) {}
 
     searchMovies(query: string, page: number): Observable<any> {
-        const headers = new HttpHeaders({
-            'x-rapidapi-key': this.rapidApiKey,
-            'x-rapidapi-host': this.rapidApiHost,
-        });
+        // Headers are added by the interceptor
 
         return this.http
             .get<any>(this.apiUrl, {
-                headers: headers,
                 params: {
                     s: query,
                     r: 'json',

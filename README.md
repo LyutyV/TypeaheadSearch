@@ -1,33 +1,81 @@
-# Angular Typeahead Search Project
+# Movie Search Application
 
-## Task Overview
+## Task Description
 
-### Project Setup
-- Start a new Angular project
-- Select any public API that supports text-based queries
+### Project Setup:
 
-### Feature Implementation
-1. **Typeahead Search**
-   - Implement search optimizations
-   - Include debounce and switchMap functionality
+-   Start a new Angular project.
+-   Select any public API that supports text-based queries.
 
-2. **Results Display**
-   - Implement virtual scroller
-   - Add batch-based pagination
+### Feature Implementation:
 
-3. **Search History Management**
-   - Save typeahead queries in NgRx store
-   - Optimize to store only meaningful queries (those with results)
-   - Implement past query suggestions
-   - Consider word breakdown optimizations
+-   Develop a typeahead search with search optimizations (e.g., debounce, switchMap).
+-   Render results using a virtual scroller with batch-based pagination.
+-   Save typeahead queries in the store (NgRx), optimized to include only meaningful queries (e.g., those triggering results).
+-   Suggest past queries from the store for subsequent searches (consider optimizations like word breakdown).
 
-### Technical Requirements
+### Code Expectations:
 
-#### Core Technologies
-- NgRx (store, actions, effects, reducers, selectors)
-- Services and interceptors as needed
+-   Use store actions, effects, reducers, and selectors.
+-   Incorporate services and interceptors where needed.
 
-#### Key Focus Areas
-- RxJS subscription management
-- Store optimization with memoization
-- Efficient DOM rendering with virtual scroll
+#### Important Focus Areas:
+
+-   Proper use of RXJS subscriptions.
+-   Usage of the store to benefit from memoization.
+-   Management of DOM rendering and use of virtual scroll
+
+> **Note**: Assignments must include a short video of the solution.
+
+## Implementation Details
+
+### 1. Project Setup and API Integration
+
+-   Utilized Angular 19.1 with standalone components architecture
+-   Integrated Movie Database Alternative API through RapidAPI
+-   Implemented HTTP interceptor for API key management
+
+### 2. Search Optimizations
+
+-   Implemented `debounceTime(500)` to reduce API calls
+-   Used `distinctUntilChanged` to prevent duplicate searches
+-   Applied `switchMap` for handling concurrent search requests
+-   Cached search results in NgRx store
+
+### 3. Virtual Scrolling Implementation
+
+-   Implemented batch-based pagination (10 results/page)
+-   Added scroll position tracking
+-   Managed placeholder elements for loading states
+
+### 4. NgRx Store Integration
+
+-   Created store architecture with:
+    -   Actions
+    -   Effects
+    -   Reducers
+    -   Selectors
+-   Implemented caching mechanism
+-   Used memoized selectors
+
+### 5. Query Management
+
+-   Stored successful queries only
+-   Implemented click-to-search functionality (over previous queries)
+-   Maintained query history
+-   Handled error states
+
+### 6. Performance Optimizations
+
+-   Used OnPush change detection
+-   Implemented takeUntil pattern
+-   Created efficient memory management
+-   Utilized async pipes
+
+### 7. Error Handling
+
+-   Comprehensive error handling through NgRx effects
+-   Visual error feedback with loading states
+-   Loading state management
+-   Placeholder images for missing posters
+-   Cache fallback for failed requests

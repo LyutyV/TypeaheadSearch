@@ -14,7 +14,7 @@ export interface MovieState {
         [query: string]: {
             totalResults: number;
             pages: { [page: number]: Movie[] };
-            error?: string; // Cache errors
+            error?: string; // Cache server errors like 500
             empty?: boolean; // Cache empty results
         };
     };
