@@ -1,0 +1,27 @@
+<input [formControl]="searchControl" placeholder="Search movies..." />
+<div class="wrapper">
+    <div class="successful-queries">
+        <h1>Previous Searches:</h1>
+        <ul>
+            @for (query of successfulQueries; track $index) {
+            <li (click)="searchControl.setValue(query)">{{ query }}</li>
+            }
+        </ul>
+    </div>
+    <div itemSize="100" #viewport class="movie-viewport">
+        @if (movies) { @for (movie of movies; track $index) {
+        <div class="movie-item">
+            @if (movie) {
+            <ng-container>
+                <img [src]="movie.Poster" [alt]="movie.Title" />
+                <div>{{ movie.Title }} ({{ movie.Year }})</div>
+            </ng-container>
+            } @else {
+            <div>Loading...</div>
+            }
+        </div>
+        } }
+    </div>
+    <div class="loading-indicator" [style.visibility]="(loading$ | async) ? 'visible' : 'hidden'">Loading...</div>
+    <div class="error-indicator" [style.visibility]="(error$ | async) ? 'visible' : 'hidden'">{{ error$ | async }}</div>
+</div>

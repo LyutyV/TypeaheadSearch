@@ -1,0 +1,56 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    input {
+        width: 300px;
+        height: 30px;
+        font-size: 16px;
+        align-self: center;
+        margin-bottom: 20px;
+    }
+    .wrapper {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+
+        .successful-queries {
+            li {
+                cursor: pointer;
+                font-size: 32px;
+            }
+        }
+
+        .movie-viewport {
+            height: 700px;
+            width: 700px;
+            border: 1px solid black;
+            overflow-y: auto;
+
+            .movie-item {
+                height: 100px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+
+                img {
+                    display: block;
+                    max-width: 80px;
+                    max-height: 100px;
+                    margin-right: 10px;
+                }
+            }
+        }
+
+        .loading-indicator {
+            margin-top: 20px;
+            font-size: 18px;
+            color: blue;
+        }
+
+        .error-indicator {
+            margin-top: 20px;
+            font-size: 18px;
+            color: red;
+        }
+    }
+}
