@@ -79,3 +79,27 @@
 -   Loading state management
 -   Placeholder images for missing posters
 -   Cache fallback for failed requests
+
+## Running the Application
+
+### Prerequisites
+
+-   Node.js (v18 or higher)
+-   Angular CLI (v19.1)
+
+### Steps to Run
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/LyutyV/TypeaheadSearch.git
+cd TypeaheadSearch
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Open your browser and navigate to `http://localhost:4200`
