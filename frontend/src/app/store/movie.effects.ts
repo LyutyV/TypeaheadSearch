@@ -50,7 +50,7 @@ export class MovieEffects {
                                 query,
                                 page,
                                 movies: response.Search,
-                                totalResults: parseInt(response.totalResults, 10),
+                                totalResults: parseInt(response.totalResults),
                             });
                         } else {
                             return MovieActions.searchMoviesEmpty({ query, page });
