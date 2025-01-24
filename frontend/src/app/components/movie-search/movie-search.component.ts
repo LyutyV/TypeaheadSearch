@@ -3,7 +3,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import { combineLatest, fromEvent, of, Subject } from 'rxjs';
-import * as MovieActions from '../../store/movie.actions';
+import { MoviesPageActions } from '../../store/movie.actions';
 import { selectMovies, selectTotalResults, selectLoading, selectError, selectSuccessfulQueries } from '../../store/movie.selectors';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
@@ -66,7 +66,7 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
                     if (!this.loadedPages.has(currentPage)) {
                         this.loadedPages.add(currentPage);
                         this.store.dispatch(
-                            MovieActions.searchMovies({
+                            MoviesPageActions.searchMovies({
                                 query: this.lastQuery,
                                 page: currentPage,
                             })
@@ -96,7 +96,7 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.lastQuery = query;
             this.loadedPages.clear();
             this.viewport?.nativeElement.scrollTo(0, 0);
-            this.store.dispatch(MovieActions.searchMovies({ query, page: 1 }));
+            this.store.dispatch(MoviesPageActions.searchMovies({ query, page: 1 }));
             this.error$ = this.store.select(selectError(query));
         }
         return combineLatest([this.store.select(selectMovies(query)), this.store.select(selectTotalResults(query))]);

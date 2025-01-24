@@ -4,7 +4,7 @@ import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
 import { catchError, map, mergeMap, withLatestFrom } from 'rxjs/operators';
 import { MovieService } from '../services/movie.service';
-import * as MovieActions from './movie.actions';
+import { MoviesPageActions } from './movie.actions';
 import { selectMovieState } from './movie.selectors';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class MovieEffects {
 
     searchMovies$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(MovieActions.searchMovies),
+            ofType(MoviesPageActions.searchMovies),
             withLatestFrom(this.store.select(selectMovieState)),
             mergeMap(([{ query, page }, movieState]) => {
                 const queryCache = movieState.cache[query];
@@ -23,16 +23,16 @@ export class MovieEffects {
                 if (queryCache) {
                     if (queryCache.error) {
                         // Return cached error
-                        return of(MovieActions.searchMoviesFailure({ query, error: queryCache.error }));
+                        return of(MoviesPageActions.searchMoviesFailure({ query, error: queryCache.error }));
                     }
                     if (queryCache.empty) {
                         // Return cached empty result
-                        return of(MovieActions.searchMoviesEmpty({ query, page }));
+                        return of(MoviesPageActions.searchMoviesEmpty({ query, page }));
                     }
                     if (queryCache.pages[page]) {
                         // Return cached page
                         return of(
-                            MovieActions.searchMoviesSuccess({
+                            MoviesPageActions.searchMoviesSuccess({
                                 query,
                                 page,
                                 movies: queryCache.pages[page],
@@ -46,19 +46,19 @@ export class MovieEffects {
                 return this.movieService.searchMovies(query, page).pipe(
                     map((response) => {
                         if (response.Search && response.Search.length > 0) {
-                            return MovieActions.searchMoviesSuccess({
+                            return MoviesPageActions.searchMoviesSuccess({
                                 query,
                                 page,
                                 movies: response.Search,
                                 totalResults: parseInt(response.totalResults),
                             });
                         } else {
-                            return MovieActions.searchMoviesEmpty({ query, page });
+                            return MoviesPageActions.searchMoviesEmpty({ query, page });
                         }
                     }),
                     catchError((error) =>
                         of(
-                            MovieActions.searchMoviesFailure({
+                            MoviesPageActions.searchMoviesFailure({
                                 query,
                                 error: error.message || 'An error occurred',
                             })

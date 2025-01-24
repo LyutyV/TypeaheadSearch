@@ -1,5 +1,5 @@
 import { createReducer, on } from '@ngrx/store';
-import * as MovieActions from './movie.actions';
+import { MoviesPageActions } from './movie.actions';
 
 export interface Movie {
     imdbID: string;
@@ -30,12 +30,12 @@ const initialState: MovieState = {
 
 export const movieReducer = createReducer(
     initialState,
-    on(MovieActions.searchMovies, (state) => ({
+    on(MoviesPageActions.searchMovies, (state) => ({
         ...state,
         loading: true,
         error: null,
     })),
-    on(MovieActions.searchMoviesSuccess, (state, { query, page, movies, totalResults }) => {
+    on(MoviesPageActions.searchMoviesSuccess, (state, { query, page, movies, totalResults }) => {
         const queryCache = state.cache[query] || { totalResults: 0, pages: {} };
         return {
             ...state,
@@ -54,7 +54,7 @@ export const movieReducer = createReducer(
             loading: false,
         };
     }),
-    on(MovieActions.searchMoviesFailure, (state, { query, error }) => {
+    on(MoviesPageActions.searchMoviesFailure, (state, { query, error }) => {
         const queryCache = state.cache[query] || { totalResults: 0, pages: {} };
         return {
             ...state,
@@ -68,7 +68,7 @@ export const movieReducer = createReducer(
             loading: false,
         };
     }),
-    on(MovieActions.searchMoviesEmpty, (state, { query, page }) => {
+    on(MoviesPageActions.searchMoviesEmpty, (state, { query, page }) => {
         const queryCache = state.cache[query] || { totalResults: 0, pages: {} };
         return {
             ...state,
