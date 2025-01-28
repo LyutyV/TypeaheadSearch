@@ -1,15 +1,11 @@
 import { createActionGroup, props } from '@ngrx/store';
-import { Movie } from './movie.reducer';
+import { IMovieResponse } from '../interfaces/movieResponce.interface';
 
 export const MoviesPageActions = createActionGroup({
     source: 'Movies',
     events: {
         SearchMovies: props<{ query: string; page: number }>(),
-
-        SearchMoviesSuccess: props<{ query: string; page: number; movies: Movie[]; totalResults: number }>(),
-
-        SearchMoviesFailure: props<{ query: string; error: string }>(),
-
-        SearchMoviesEmpty: props<{ query: string; page: number }>(),
+        SearchMoviesSuccess: props<{ queryCache: string; response: IMovieResponse }>(),
+        SearchMoviesError: props<{ error: string }>(),
     },
 });

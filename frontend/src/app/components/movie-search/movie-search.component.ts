@@ -2,12 +2,12 @@ import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ViewChild, After
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
-import { combineLatest, fromEvent, of, Subject } from 'rxjs';
+import { combineLatest, fromEvent, Observable, of, Subject } from 'rxjs';
 import { MoviesPageActions } from '../../store/movie.actions';
-import { selectMovies, selectTotalResults, selectLoading, selectError, selectSuccessfulQueries } from '../../store/movie.selectors';
+import { selectTotalResults, selectLoadingStatus, selectSuccessfulQueries, selectMoviesFromCache } from '../../store/movie.selectors';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
-import { Movie } from '../../store/movie.reducer';
+import { IMovie } from '../../interfaces/movie.interface';
 
 @Component({
     selector: 'app-movie-search',
@@ -19,18 +19,16 @@ import { Movie } from '../../store/movie.reducer';
 export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
     @ViewChild('viewport', { read: ElementRef }) viewport: ElementRef<HTMLElement> | undefined;
     searchControl = new FormControl();
-    movies: Movie[] = [];
+    movies: IMovie[] = [];
     successfulQueries: string[] = [];
     totalResults = 0;
     loading$;
-    error$;
     lastQuery = '';
     private destroy$ = new Subject<void>();
     private loadedPages = new Set<number>();
 
     constructor(private store: Store) {
-        this.loading$ = this.store.select(selectLoading);
-        this.error$ = this.store.select(selectError(this.lastQuery));
+        this.loading$ = this.store.select(selectLoadingStatus);
         this.store
             .select(selectSuccessfulQueries)
             .pipe(takeUntil(this.destroy$))
@@ -39,6 +37,7 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
             });
     }
     ngAfterViewInit(): void {
+        // Subscribe to scroll
         fromEvent(this.viewport!.nativeElement, 'scroll')
             .pipe(takeUntil(this.destroy$))
             .subscribe(() => {
@@ -47,7 +46,7 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
 
                 if (lastRealMovieIndex === -1) return;
 
-                // Get viewport bottom position
+                // Get movies area bottom position
                 const viewportRect = this.viewport!.nativeElement.getBoundingClientRect();
                 const viewportBottom = viewportRect.bottom;
 
@@ -56,7 +55,7 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
                 const lastRealMovieElement = movieElements[lastRealMovieIndex];
                 const lastMovieBottom = lastRealMovieElement.getBoundingClientRect().bottom;
 
-                // Calculate distance
+                // Calculate distance between last movie and bottom of movies area
                 const distanceToBottom = lastMovieBottom - viewportBottom;
 
                 if (distanceToBottom < 200 && lastRealMovieIndex + 1 < this.totalResults) {
@@ -77,47 +76,52 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     ngOnInit(): void {
-        this.initializeSearchSubscription();
-    }
-
-    private initializeSearchSubscription(): void {
         this.searchControl.valueChanges
             .pipe(
                 debounceTime(500),
                 distinctUntilChanged(),
-                switchMap((query) => this.handleSearchQuery(query)),
+                switchMap((query) => this.handleQuery(query)),
                 takeUntil(this.destroy$)
             )
             .subscribe(([movies, totalResults]) => this.updateMoviesList(movies, totalResults));
     }
 
-    private handleSearchQuery(query: string) {
-        if (query && query !== this.lastQuery) {
+    private handleQuery(query: string): Observable<[IMovie[], number]> {
+        // if query is empty, clear movies list
+        if (!query) {
+            this.movies = [];
+            this.lastQuery = '';
+            return of([[], 0]);
+        }
+
+        if (query !== this.lastQuery) {
             this.lastQuery = query;
             this.loadedPages.clear();
             this.viewport?.nativeElement.scrollTo(0, 0);
             this.store.dispatch(MoviesPageActions.searchMovies({ query, page: 1 }));
-            this.error$ = this.store.select(selectError(query));
         }
-        return combineLatest([this.store.select(selectMovies(query)), this.store.select(selectTotalResults(query))]);
+        // at this stage responce is already in the cache so we can update movies list
+        return combineLatest([this.store.select(selectMoviesFromCache(query)), this.store.select(selectTotalResults(query))]);
     }
 
-    private updateMoviesList(movies: Movie[] | null, totalResults: number): void {
+    private updateMoviesList(movies: IMovie[], totalResults: number): void {
         if (!movies) return;
 
+        // if totalResults changed, that means we have a new search query
         if (this.totalResults !== totalResults) {
-            this.initializeMoviesArray(totalResults);
+            this.renewMoviesArray(totalResults);
         }
 
-        this.updateMoviePositions(movies);
+        this.updateMoviesArray(movies);
     }
 
-    private initializeMoviesArray(totalResults: number): void {
+    private renewMoviesArray(totalResults: number): void {
         this.totalResults = totalResults;
+        // fill array of either 100 elements to avoid overloading page or totalResults if it's less than 100
         this.movies = new Array(Math.min(totalResults, 100)).fill(null);
     }
 
-    private updateMoviePositions(movies: Movie[]): void {
+    private updateMoviesArray(movies: IMovie[]): void {
         movies.forEach((movie, index) => {
             if (this.movies[index]?.imdbID !== movie.imdbID) {
                 this.movies[index] = { ...movie };

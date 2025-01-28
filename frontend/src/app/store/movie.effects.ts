@@ -1,69 +1,49 @@
 import { inject, Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, ofType, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
 import { catchError, map, mergeMap, withLatestFrom } from 'rxjs/operators';
-import { MovieService } from '../services/movie.service';
 import { MoviesPageActions } from './movie.actions';
-import { selectMovieState } from './movie.selectors';
+import { MoviesState } from './movie.reducer';
+import { MovieService } from '../services/movie.service';
+import { selectCache } from './movie.selectors';
 
 @Injectable()
 export class MovieEffects {
     private actions$ = inject(Actions);
     private movieService = inject(MovieService);
-    private store = inject(Store);
+    private store = inject(Store<{ movies: MoviesState }>);
+    constructor() {}
 
-    searchMovies$ = createEffect(() =>
+    loadMovies$ = createEffect(() =>
         this.actions$.pipe(
             ofType(MoviesPageActions.searchMovies),
-            withLatestFrom(this.store.select(selectMovieState)),
-            mergeMap(([{ query, page }, movieState]) => {
-                const queryCache = movieState.cache[query];
-
-                if (queryCache) {
-                    if (queryCache.error) {
-                        // Return cached error
-                        return of(MoviesPageActions.searchMoviesFailure({ query, error: queryCache.error }));
-                    }
-                    if (queryCache.empty) {
-                        // Return cached empty result
-                        return of(MoviesPageActions.searchMoviesEmpty({ query, page }));
-                    }
-                    if (queryCache.pages[page]) {
-                        // Return cached page
-                        return of(
-                            MoviesPageActions.searchMoviesSuccess({
-                                query,
-                                page,
-                                movies: queryCache.pages[page],
-                                totalResults: queryCache.totalResults,
-                            })
-                        );
-                    }
+            withLatestFrom(this.store.select(selectCache)),
+            mergeMap(([action, cachedMovies]) => {
+                const queryCache = `${action.query}_${action.page}`;
+                // if we have data already in cache, return it
+                if (cachedMovies[queryCache]) {
+                    return of(
+                        MoviesPageActions.searchMoviesSuccess({
+                            queryCache,
+                            response: cachedMovies[queryCache],
+                        })
+                    );
                 }
-
-                // Backend request
-                return this.movieService.searchMovies(query, page).pipe(
+                // if we don't have data already in cache, ask the service
+                return this.movieService.searchMovies(action.query, action.page).pipe(
                     map((response) => {
-                        if (response.Search && response.Search.length > 0) {
-                            return MoviesPageActions.searchMoviesSuccess({
-                                query,
-                                page,
-                                movies: response.Search,
-                                totalResults: parseInt(response.totalResults),
+                        if (response.Response === 'False' && response.Error === 'Movie not found!') {
+                            return MoviesPageActions.searchMoviesError({
+                                error: response.Error,
                             });
-                        } else {
-                            return MoviesPageActions.searchMoviesEmpty({ query, page });
                         }
+                        return MoviesPageActions.searchMoviesSuccess({
+                            queryCache,
+                            response,
+                        });
                     }),
-                    catchError((error) =>
-                        of(
-                            MoviesPageActions.searchMoviesFailure({
-                                query,
-                                error: error.message || 'An error occurred',
-                            })
-                        )
-                    )
+                    catchError((error) => of(MoviesPageActions.searchMoviesError({ error: error.message })))
                 );
             })
         )

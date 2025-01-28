@@ -1,29 +1,43 @@
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { Movie, MovieState } from './movie.reducer';
+import { createSelector, createFeatureSelector } from '@ngrx/store';
+import { MoviesState } from './movie.reducer';
+import { IMovie } from '../interfaces/movie.interface';
 
-export const selectMovieState = createFeatureSelector<MovieState>('movies');
+export const selectMovieState = createFeatureSelector<MoviesState>('movies');
 
-export const selectMovies = (query: string) =>
-    createSelector(selectMovieState, (state: MovieState) => {
-        const queryCache = state.cache[query];
-        if (!queryCache || !Object.keys(queryCache.pages).length) return [];
+export const selectCache = createSelector(selectMovieState, (state: MoviesState) => state.cache);
 
-        const allMovies: Movie[] = [];
-        Object.values(queryCache.pages).forEach((pageMovies) => {
-            allMovies.push(...pageMovies);
-        });
-        return allMovies;
+export const selectLoadingStatus = createSelector(selectMovieState, (state: MoviesState) => state.loading);
+
+export const selectMoviesFromCache = (query: string) =>
+    createSelector(selectCache, (cache) => {
+        const movies: IMovie[] = [];
+        for (const key in cache) {
+            // get rid of the page number in the query to compare
+            if (key.split('_')[0] === query) {
+                const results = cache[key].Search;
+                if (results) {
+                    movies.push(...results);
+                }
+            }
+        }
+        return movies;
     });
 
-export const selectTotalResults = (query: string) => createSelector(selectMovieState, (state: MovieState) => state.cache[query]?.totalResults || 0);
+export const selectTotalResults = (query: string) =>
+    createSelector(selectCache, (cache) => {
+        const rawQuery = Object.keys(cache).find((key) => key.startsWith(query));
+        if (!rawQuery) return 0;
+        const totalResults = cache[rawQuery].totalResults;
+        if (!totalResults) return 0;
+        return parseInt(totalResults);
+    });
 
-export const selectLoading = createSelector(selectMovieState, (state: MovieState) => state.loading);
-
-export const selectError = (query: string) => createSelector(selectMovieState, (state: MovieState) => state.cache[query]?.error || null);
-
-export const selectIsQueryEmpty = (query: string) => createSelector(selectMovieState, (state: MovieState) => state.cache[query]?.empty || false);
-
-export const selectSuccessfulQueries = createSelector(selectMovieState, (state: MovieState) => {
-    if (!state.cache || !Object.keys(state.cache).length) return [];
-    return Object.keys(state.cache).filter((query) => !state.cache[query].empty && !state.cache[query].error);
+export const selectSuccessfulQueries = createSelector(selectCache, (cache) => {
+    // get rid of the page number in the query and return array of unique queries
+    const queries = new Set<string>();
+    Object.keys(cache).forEach((queryCache) => {
+        const query = queryCache.split('_')[0];
+        queries.add(query);
+    });
+    return Array.from(queries);
 });
