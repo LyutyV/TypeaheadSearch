@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ViewChild, AfterViewInit, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
@@ -27,7 +27,7 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
     private destroy$ = new Subject<void>();
     private loadedPages = new Set<number>();
 
-    constructor(private store: Store) {
+    constructor(private store: Store, private cd: ChangeDetectorRef) {
         this.loading$ = this.store.select(selectLoadingStatus);
         this.store
             .select(selectSuccessfulQueries)
@@ -91,6 +91,7 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
         if (!query) {
             this.movies = [];
             this.lastQuery = '';
+            this.cd.markForCheck();
             return of([[], 0]);
         }
 
