@@ -14,8 +14,11 @@
             @if (movie) {
             <ng-container>
                 <img [src]="movie.Poster" [alt]="movie.Title" />
-                <div>{{ movie.Title }} ({{ movie.Year }})</div>
+                <div [innerHTML]="movie.Title | highlight : lastQuery"></div>
+                <div>&nbsp;({{ movie.Year }})</div>
             </ng-container>
+            } @else {
+            <div>Loading...</div>
             }
         </div>
         } }

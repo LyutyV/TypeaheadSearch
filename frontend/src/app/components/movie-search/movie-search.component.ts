@@ -1,20 +1,22 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ViewChild, AfterViewInit, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, map, switchMap, takeUntil } from 'rxjs/operators';
 import { combineLatest, fromEvent, Observable, of, Subject } from 'rxjs';
 import { MoviesPageActions } from '../../store/movie.actions';
 import { selectTotalResults, selectLoadingStatus, selectSuccessfulQueries, selectMoviesFromCache } from '../../store/movie.selectors';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
 import { IMovie } from '../../interfaces/movie.interface';
+import { sanitize } from '../../costomRxjsOperators/sanitizer';
+import { HighlightSearchPipe } from '../../pipes/highlight.pipe';
 
 @Component({
     selector: 'app-movie-search',
     templateUrl: 'movie-search.component.html',
     styleUrls: ['movie-search.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [CommonModule, ScrollingModule, ReactiveFormsModule],
+    imports: [CommonModule, ScrollingModule, ReactiveFormsModule, HighlightSearchPipe],
 })
 export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
     @ViewChild('viewport', { read: ElementRef }) viewport: ElementRef<HTMLElement> | undefined;
@@ -80,6 +82,8 @@ export class MovieSearchComponent implements OnInit, OnDestroy, AfterViewInit {
             .pipe(
                 debounceTime(500),
                 distinctUntilChanged(),
+                map((input) => input.trim()),
+                sanitize,
                 switchMap((query) => this.handleQuery(query)),
                 takeUntil(this.destroy$)
             )
