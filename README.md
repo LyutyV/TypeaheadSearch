@@ -11,6 +11,7 @@ cd TypeaheadSearch/frontend
 
 ```bash
 npm install
+ng serve
 ```
 
 3. Open your browser and navigate to `http://localhost:4200`
