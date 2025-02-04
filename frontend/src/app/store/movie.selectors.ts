@@ -25,11 +25,15 @@ export const selectMoviesFromCache = (query: string) =>
 
 export const selectTotalResults = (query: string) =>
     createSelector(selectCache, (cache) => {
-        const rawQuery = Object.keys(cache).find((key) => key.startsWith(query));
-        if (!rawQuery) return 0;
-        const totalResults = cache[rawQuery].totalResults;
-        if (!totalResults) return 0;
-        return parseInt(totalResults);
+        for (const key in cache) {
+            if (key.split('_')[0] === query) {
+                const totalResults = cache[key].totalResults;
+                if (totalResults) {
+                    return parseInt(totalResults);
+                }
+            }
+        }
+        return 0;
     });
 
 export const selectSuccessfulQueries = createSelector(selectCache, (cache) => {
