@@ -35,12 +35,10 @@ export class MovieDetailsComponent implements AfterViewInit {
         canvasEl.height = canvasEl.offsetHeight;
         this.loadBackgroundImage();
 
-        // При звичайному малюванні ми підписуємось на зміну всіх полігонів
         if (this.movie) {
             this.store.select(selectPolygonsForMovie(this.movie.imdbID)).subscribe((polygons: IPolygon[]) => this.draw(polygons));
         }
 
-        // Додаємо слухачі для mousedown і mouseup
         canvasEl.addEventListener('mousedown', this.onMouseDown.bind(this));
         canvasEl.addEventListener('mouseup', this.onMouseUp.bind(this));
     }
@@ -61,7 +59,6 @@ export class MovieDetailsComponent implements AfterViewInit {
         }
     }
 
-    // Обробка mousedown: визначаємо, чи потрібно увійти в режим обертання, або просто зафіксувати координати кліку.
     private onMouseDown(event: MouseEvent): void {
         const rect = this.canvas.nativeElement.getBoundingClientRect();
         const x = event.clientX - rect.left;
@@ -69,27 +66,22 @@ export class MovieDetailsComponent implements AfterViewInit {
 
         if (!this.movie) return;
 
-        // Отримуємо всі полігони для даного фільму
         this.store
             .select(selectPolygonsForMovie(this.movie.imdbID))
             .pipe(take(1))
             .subscribe((polygons: IPolygon[]) => {
-                // Якщо є замкнений (закритий) полігон, в якому клік (mousedown) відбувається всередині, запускаємо режим обертання
                 const closedPolygon = polygons.find((polygon) => polygon.color && this.isPointInPolygon(polygon.points, x, y));
                 if (closedPolygon) {
                     this.rotationModeActive = true;
                     this.startRotationMode(closedPolygon);
                 } else {
-                    // Якщо клік не всередині замкнутого полігону, фіксуємо координати для подальшого "кліку"
                     this.pendingClick = { x, y };
                 }
             });
     }
 
-    // Обробка mouseup: якщо режим обертання активний – завершуємо його, інакше обробляємо як "клік" (натискання й відпускання)
     private onMouseUp(event: MouseEvent): void {
         if (this.rotationModeActive) {
-            // Завершуємо режим обертання (слухачі mousemove видаляються у startRotationMode)
             this.rotationModeActive = false;
             return;
         }
@@ -100,7 +92,6 @@ export class MovieDetailsComponent implements AfterViewInit {
         }
     }
 
-    // Обробка "кліку" – додаємо точку або закриваємо відкритий полігон
     private handleClick(x: number, y: number): void {
         if (!this.movie) return;
 
@@ -108,10 +99,8 @@ export class MovieDetailsComponent implements AfterViewInit {
             .select(selectPolygonsForMovie(this.movie.imdbID))
             .pipe(take(1))
             .subscribe((polygons: IPolygon[]) => {
-                // Шукаємо відкритий (active) полігон (без кольору)
                 const activePolygon = polygons.find((polygon) => !polygon.color);
                 if (!activePolygon) {
-                    // Якщо немає активного полігону – створюємо новий з першою точкою
                     const newPolygonId = Math.random().toString();
                     const newPolygon: IPolygon = {
                         id: newPolygonId,
@@ -120,42 +109,33 @@ export class MovieDetailsComponent implements AfterViewInit {
                     };
                     this.store.dispatch(MovieDetailsActions.createPolygon({ polygon: newPolygon }));
                 } else {
-                    // Якщо полігон відкритий, перевіряємо, чи клік відбувається біля першої точки для його закриття
                     if (activePolygon.points.length > 0 && this.isClickOnFirstPoint(activePolygon.points, x, y)) {
                         const color = this.getRandomColor();
                         this.store.dispatch(MovieDetailsActions.closeActivePolygon({ color }));
                     } else {
-                        // Інакше – додаємо точку до відкритого полігону
                         this.store.dispatch(MovieDetailsActions.addPoint({ polygonId: activePolygon.id, point: { x, y } }));
                     }
                 }
             });
     }
 
-    // Режим обертання: під час утримання кнопки миші, якщо курсор всередині замкнутого полігону, обертаємо його.
     private startRotationMode(polygon: IPolygon): void {
         const canvasEl = this.canvas.nativeElement;
-        // Зберігаємо базові точки полігону (до обертання)
         const basePoints = polygon.points.map((pt) => ({ ...pt }));
-        // Обчислюємо центр полігону
         const center = this.computeCenter(basePoints);
 
         const onMouseMove = (e: MouseEvent) => {
             const bounds = canvasEl.getBoundingClientRect();
             const mouseX = e.clientX - bounds.left;
             const mouseY = e.clientY - bounds.top;
-            // Обчислюємо кут між центром полігону та поточними координатами миші
             const angle = Math.atan2(mouseY - center.y, mouseX - center.x);
-            // Обчислюємо нові координати точок полігону, застосовуючи обертання відносно базових точок
             const rotatedPoints = this.rotatePoints(basePoints, angle);
-            // Диспатчимо оновлення полігону з новими точками
             this.store.dispatch(
                 MovieDetailsActions.updatePolygon({
                     polygonId: polygon.id,
                     changes: { points: rotatedPoints },
                 })
             );
-            // Опціонально перерисовуємо канвас
             if (this.movie) {
                 this.store
                     .select(selectPolygonsForMovie(this.movie.imdbID))
@@ -164,19 +144,15 @@ export class MovieDetailsComponent implements AfterViewInit {
             }
         };
 
-        // Додаємо слухача mousemove для режиму обертання
         canvasEl.addEventListener('mousemove', onMouseMove);
 
-        // При події mouseup видаляємо слухачі, що припинять режим обертання
         const onMouseUp = () => {
             canvasEl.removeEventListener('mousemove', onMouseMove);
             canvasEl.removeEventListener('mouseup', onMouseUp);
-            // Завершуємо режим обертання
         };
         canvasEl.addEventListener('mouseup', onMouseUp);
     }
 
-    // Допоміжна функція для обчислення центру полігону
     private computeCenter(points: { x: number; y: number }[]): { x: number; y: number } {
         let centerX = 0,
             centerY = 0;
@@ -187,7 +163,6 @@ export class MovieDetailsComponent implements AfterViewInit {
         return { x: centerX / points.length, y: centerY / points.length };
     }
 
-    // Допоміжна функція для перевірки, чи знаходиться точка всередині полігону (алгоритм ray-casting)
     private isPointInPolygon(points: { x: number; y: number }[], x: number, y: number): boolean {
         let inside = false;
         for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
@@ -201,7 +176,6 @@ export class MovieDetailsComponent implements AfterViewInit {
         return inside;
     }
 
-    // Допоміжна функція для обертання точок полігону навколо його центру на заданий кут (angle)
     private rotatePoints(points: { x: number; y: number }[], angle: number): { x: number; y: number }[] {
         const center = this.computeCenter(points);
         return points.map((pt) => {
@@ -231,11 +205,9 @@ export class MovieDetailsComponent implements AfterViewInit {
         return `rgba(${r}, ${g}, ${b}, ${a})`;
     }
 
-    // Метод draw, який малює всі полігони
     private draw(polygons: IPolygon[]): void {
         if (!this.backgroundImage) return;
         const ctx = this.canvasContext;
-        // Малюємо фон
         ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
 
         polygons.forEach((polygonData) => {
@@ -250,7 +222,6 @@ export class MovieDetailsComponent implements AfterViewInit {
                     ctx.lineTo(point.x, point.y);
                 }
             });
-            // Якщо полігон замкнений
             if (polygon.length > 2 && polygon[0].x === polygon[polygon.length - 1].x && polygon[0].y === polygon[polygon.length - 1].y) {
                 ctx.closePath();
                 ctx.fillStyle = polygonData.color || 'rgba(0, 255, 0, 0.3)';
@@ -260,7 +231,6 @@ export class MovieDetailsComponent implements AfterViewInit {
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Малюємо точки полігону
             polygon.forEach((point) => {
                 ctx.beginPath();
                 ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
