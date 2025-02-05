@@ -10,7 +10,7 @@
     </div>
     <div #viewport class="movie-viewport">
         @if (movies) { @for (movie of movies; track $index) {
-        <div class="movie-item">
+        <div class="movie-item" (click)="openDetails($event, movie)">
             @if (movie) {
             <ng-container>
                 <img [src]="movie.Poster" [alt]="movie.Title" />
