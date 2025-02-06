@@ -16,7 +16,7 @@ export class MovieDetailsComponent implements AfterViewInit {
     @Output() close = new EventEmitter<void>();
 
     private canvasContext!: CanvasRenderingContext2D;
-    movie: IMovie | null = null;
+    movie!: IMovie;
     private backgroundImage!: HTMLImageElement;
 
     private rotationModeActive = false;
@@ -48,12 +48,10 @@ export class MovieDetailsComponent implements AfterViewInit {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                if (this.movie) {
-                    this.store
-                        .select(selectPolygonsForMovie(this.movie.imdbID))
-                        .pipe(take(1))
-                        .subscribe((polygons: IPolygon[]) => this.draw(polygons));
-                }
+                this.store
+                    .select(selectPolygonsForMovie(this.movie.imdbID))
+                    .pipe(take(1))
+                    .subscribe((polygons: IPolygon[]) => this.draw(polygons));
             };
             img.src = this.movie.Poster;
         }
@@ -63,8 +61,6 @@ export class MovieDetailsComponent implements AfterViewInit {
         const rect = this.canvas.nativeElement.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-
-        if (!this.movie) return;
 
         this.store
             .select(selectPolygonsForMovie(this.movie.imdbID))
@@ -93,8 +89,6 @@ export class MovieDetailsComponent implements AfterViewInit {
     }
 
     private handleClick(x: number, y: number): void {
-        if (!this.movie) return;
-
         this.store
             .select(selectPolygonsForMovie(this.movie.imdbID))
             .pipe(take(1))
@@ -111,7 +105,7 @@ export class MovieDetailsComponent implements AfterViewInit {
                 } else {
                     if (activePolygon.points.length > 0 && this.isClickOnFirstPoint(activePolygon.points, x, y)) {
                         const color = this.getRandomColor();
-                        this.store.dispatch(MovieDetailsActions.closeActivePolygon({ color }));
+                        this.store.dispatch(MovieDetailsActions.closeActivePolygon({ polygonId: activePolygon.id, color }));
                     } else {
                         this.store.dispatch(MovieDetailsActions.addPoint({ polygonId: activePolygon.id, point: { x, y } }));
                     }
@@ -121,27 +115,25 @@ export class MovieDetailsComponent implements AfterViewInit {
 
     private startRotationMode(polygon: IPolygon): void {
         const canvasEl = this.canvas.nativeElement;
-        const basePoints = polygon.points.map((pt) => ({ ...pt }));
-        const center = this.computeCenter(basePoints);
+        const allPints = polygon.points.map((pt) => ({ ...pt }));
+        const center = this.getShapeCenter(allPints);
 
         const onMouseMove = (e: MouseEvent) => {
             const bounds = canvasEl.getBoundingClientRect();
             const mouseX = e.clientX - bounds.left;
             const mouseY = e.clientY - bounds.top;
             const angle = Math.atan2(mouseY - center.y, mouseX - center.x);
-            const rotatedPoints = this.rotatePoints(basePoints, angle);
+            const rotatedPoints = this.rotatePoints(allPints, angle);
             this.store.dispatch(
                 MovieDetailsActions.updatePolygon({
                     polygonId: polygon.id,
                     changes: { points: rotatedPoints },
                 })
             );
-            if (this.movie) {
-                this.store
-                    .select(selectPolygonsForMovie(this.movie.imdbID))
-                    .pipe(take(1))
-                    .subscribe((polygons: IPolygon[]) => this.draw(polygons));
-            }
+            this.store
+                .select(selectPolygonsForMovie(this.movie.imdbID))
+                .pipe(take(1))
+                .subscribe((polygons: IPolygon[]) => this.draw(polygons));
         };
 
         canvasEl.addEventListener('mousemove', onMouseMove);
@@ -153,7 +145,7 @@ export class MovieDetailsComponent implements AfterViewInit {
         canvasEl.addEventListener('mouseup', onMouseUp);
     }
 
-    private computeCenter(points: { x: number; y: number }[]): { x: number; y: number } {
+    private getShapeCenter(points: { x: number; y: number }[]): { x: number; y: number } {
         let centerX = 0,
             centerY = 0;
         points.forEach((pt) => {
@@ -177,7 +169,7 @@ export class MovieDetailsComponent implements AfterViewInit {
     }
 
     private rotatePoints(points: { x: number; y: number }[], angle: number): { x: number; y: number }[] {
-        const center = this.computeCenter(points);
+        const center = this.getShapeCenter(points);
         return points.map((pt) => {
             const dx = pt.x - center.x;
             const dy = pt.y - center.y;
@@ -192,6 +184,7 @@ export class MovieDetailsComponent implements AfterViewInit {
     }
 
     private isClickOnFirstPoint(points: { x: number; y: number }[], x: number, y: number): boolean {
+        // we assume that if distance is less than 10 px then point are equal
         const firstPoint = points[0];
         const distance = Math.hypot(firstPoint.x - x, firstPoint.y - y);
         return distance < 10;
@@ -210,34 +203,38 @@ export class MovieDetailsComponent implements AfterViewInit {
         const ctx = this.canvasContext;
         ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
 
+        // Draw each polygon
         polygons.forEach((polygonData) => {
-            const polygon = polygonData.points;
-            if (polygon.length === 0) return;
+            const points = polygonData.points;
+            if (points.length === 0) return;
 
             ctx.beginPath();
-            polygon.forEach((point, i) => {
+            points.forEach((point, i) => {
                 if (i === 0) {
                     ctx.moveTo(point.x, point.y);
                 } else {
                     ctx.lineTo(point.x, point.y);
                 }
             });
-            if (polygon.length > 2 && polygon[0].x === polygon[polygon.length - 1].x && polygon[0].y === polygon[polygon.length - 1].y) {
+            // determine if poligon is closed
+            if (points.length > 2 && points[0].x === points[points.length - 1].x && points[0].y === points[points.length - 1].y) {
+                // if closed - fill with color
                 ctx.closePath();
                 ctx.fillStyle = polygonData.color || 'rgba(0, 255, 0, 0.3)';
                 ctx.fill();
             }
+            // if not closed - just draw lines without fill
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            polygon.forEach((point) => {
+            // and draw dots
+            points.forEach((point) => {
                 ctx.beginPath();
                 ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
                 ctx.fillStyle = 'green';
                 ctx.fill();
             });
-            ctx.restore();
         });
     }
 
@@ -253,24 +250,22 @@ export class MovieDetailsComponent implements AfterViewInit {
         const scaleX = canvasEl.width / oldWidth;
         const scaleY = canvasEl.height / oldHeight;
 
-        if (this.movie) {
-            this.store
-                .select(selectPolygonsForMovie(this.movie.imdbID))
-                .pipe(take(1))
-                .subscribe((polygons: IPolygon[]) => {
-                    polygons.forEach((polygonData) => {
-                        const newPoints = polygonData.points.map((point) => ({
-                            x: point.x * scaleX,
-                            y: point.y * scaleY,
-                        }));
-                        this.store.dispatch(
-                            MovieDetailsActions.updatePolygon({
-                                polygonId: polygonData.id,
-                                changes: { points: newPoints },
-                            })
-                        );
-                    });
+        this.store
+            .select(selectPolygonsForMovie(this.movie.imdbID))
+            .pipe(take(1))
+            .subscribe((polygons: IPolygon[]) => {
+                polygons.forEach((polygonData) => {
+                    const newPoints = polygonData.points.map((point) => ({
+                        x: point.x * scaleX,
+                        y: point.y * scaleY,
+                    }));
+                    this.store.dispatch(
+                        MovieDetailsActions.updatePolygon({
+                            polygonId: polygonData.id,
+                            changes: { points: newPoints },
+                        })
+                    );
                 });
-        }
+            });
     }
 }

@@ -7,7 +7,7 @@ export const MovieDetailsActions = createActionGroup({
     events: {
         createPolygon: props<{ polygon: IPolygon }>(),
         addPoint: props<{ polygonId: string; point: IDot }>(),
-        closeActivePolygon: props<{ color: string }>(),
+        closeActivePolygon: props<{ polygonId: string; color: string }>(),
         updatePolygon: props<{ polygonId: string; changes: Partial<IPolygon> }>(),
     },
 });

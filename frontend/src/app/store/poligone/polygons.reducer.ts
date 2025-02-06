@@ -25,8 +25,8 @@ export const polygonReducer = createReducer(
         };
         return adapter.updateOne({ id: polygonId, changes: updatedPolygon }, state);
     }),
-    on(MovieDetailsActions.closeActivePolygon, (state, { color }) => {
-        const activePolygon = Object.values(state.entities).find((p) => p && !p.color);
+    on(MovieDetailsActions.closeActivePolygon, (state, { polygonId, color }) => {
+        const activePolygon = Object.values(state.entities).find((p) => p?.id === polygonId);
         if (!activePolygon) {
             return state;
         }
